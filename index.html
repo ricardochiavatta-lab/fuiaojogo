@@ -690,6 +690,14 @@ tr:hover td{background:rgba(255,255,255,.02)}
 // ── CONFIG ──
 var SUPA_URL='https://swvzomkyxrocstdsvtsk.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3dnpvbWt5eHJvY3N0ZHN2dHNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NjQ5MTgsImV4cCI6MjA5MjA0MDkxOH0._4u6VOyoopoCAdDk8Tc8sZZcAhnjnvmcS9N7lp_e_vc';
+// Create Supabase client immediately - critical for PKCE flow
+var _sb=null;
+function getSupa(){
+  if(!_sb&&window.supabase) _sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  return _sb;
+}
+// Pre-initialize as soon as supabase.js loads
+(function tryInit(){if(window.supabase){getSupa();}else{setTimeout(tryInit,50);}})();
 var REDIRECT_URL='https://ricardochiavatta-lab.github.io/naarquibancada/';
 var BUCKET='logos';
 
@@ -896,11 +904,7 @@ function saveLogoUpload(){
 const SEED=[];
 
 // ── SUPABASE SETUP ──
-var _sb=null;
-function getSupa(){
-  if(!_sb&&window.supabase) _sb=window.supabase.createClient('https://swvzomkyxrocstdsvtsk.supabase.co','eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3dnpvbWt5eHJvY3N0ZHN2dHNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NjQ5MTgsImV4cCI6MjA5MjA0MDkxOH0._4u6VOyoopoCAdDk8Tc8sZZcAhnjnvmcS9N7lp_e_vc.UIKq1ahneB_jaFGndk3ns12yM4vIggJ7N53CYV6r7Dk');
-  return _sb;
-}
+
 
 // ── STATE ──
 var LS_LOGOS='vcc-logos', LS_COMP_ICONS='vcc-comp-icons';
@@ -926,52 +930,48 @@ function saveCompIcons(){
 
 // ── AUTH ──
 async function initSupabase(){
+  // Wait for Supabase to be ready
   var sp=getSupa();
   if(!sp){setTimeout(initSupabase,200);return;}
-  
-  // Always show login screen first (unless we have a session)
-  document.getElementById('login-screen').classList.remove('hide');
-  var splash=document.getElementById('splash');
-  if(splash) splash.classList.add('hide');
-  document.getElementById('app').style.display='none';
-  
-  // Handle redirect back from Google OAuth
+
+  // Detect OAuth callback (PKCE uses ?code=, implicit uses #access_token)
   var _hash=window.location.hash||'';
-  if(_hash.includes('access_token')||_hash.includes('refresh_token')||_hash.includes('error_description')){
-    // Hide landing immediately on OAuth callback
+  var _search=window.location.search||'';
+  var _isCallback=_hash.includes('access_token')||_search.includes('code=');
+
+  if(_isCallback){
+    // Hide landing immediately
     var _land=document.getElementById('landing');
-    if(_land) _land.classList.add('hide');
-    // Give Supabase JS time to process the hash and establish session
-    await new Promise(function(r){setTimeout(r,1200);});
-    try{history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){}
+    if(_land){_land.style.display='none';}
+    // Wait for Supabase to exchange the code for a session
+    await new Promise(function(r){setTimeout(r,2000);});
+    try{history.replaceState(null,'',window.location.pathname);}catch(e){}
   }
-  
-  var _sess1=await sp.auth.getSession();
-  var session=_sess1&&_sess1.data&&_sess1.data.session;
-  
-  // If no session but we just came from OAuth redirect, retry once
-  if(!session&&(_hash.includes('access_token')||_hash.includes('refresh_token'))){
-    await new Promise(function(r){setTimeout(r,1000);});
-    var _sess2=await sp.auth.getSession();
-    session=_sess2&&_sess2.data&&_sess2.data.session;
-  }
-  
+
+  // Check for existing session
+  var {data:{session}}=await sp.auth.getSession();
+
   if(session){
     currentUser=session.user;
     document.getElementById('login-screen').classList.add('hide');
     await showApp();
     return;
   }
-  
+
+  // No session - show login (hide landing if visible)
+  document.getElementById('login-screen').classList.remove('hide');
+
+  // Listen for auth changes
   sp.auth.onAuthStateChange(async function(event,session){
     if(event==='SIGNED_IN'&&session){
       currentUser=session.user;
       document.getElementById('login-screen').classList.add('hide');
+      document.getElementById('landing').classList.add('hide');
       await showApp();
-    }else if(event==='SIGNED_OUT'){
+    } else if(event==='SIGNED_OUT'){
       currentUser=null;
-      games=JSON.parse(JSON.stringify(SEED));
-      pessoas=[];
+      games=[];pessoas=[];currentTeam=null;
+      lsSet(LS_TEAM,null);
       document.getElementById('login-screen').classList.remove('hide');
       document.getElementById('app').classList.remove('visible');
       document.getElementById('app').style.display='none';
@@ -989,7 +989,10 @@ async function loginWithGoogle(){
   btn.innerHTML='<span>⏳ Aguardando...</span>';
   var {error}=await sp.auth.signInWithOAuth({
     provider:'google',
-    options:{redirectTo:'https://ricardochiavatta-lab.github.io/naarquibancada/'}
+    options:{
+      redirectTo:'https://ricardochiavatta-lab.github.io/naarquibancada/',
+      skipBrowserRedirect:false
+    }
   });
   if(error){
     alert('Erro: '+error.message);
@@ -2211,9 +2214,10 @@ function renderAll(){
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async function(){
-  // If OAuth callback hash present, hide landing immediately
+  // If OAuth callback, hide landing immediately
   var _h=window.location.hash||'';
-  if(_h.includes('access_token')||_h.includes('refresh_token')){
+  var _s=window.location.search||'';
+  if(_h.includes('access_token')||_h.includes('refresh_token')||_s.includes('code=')){
     var _l=document.getElementById('landing');
     if(_l){_l.style.display='none';}
   }
