@@ -37,6 +37,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .topbar-name{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;color:var(--gold)}
 .btn-novo{display:flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border-radius:4px;background:var(--gold);color:#000;border:none;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:.08em;transition:background .2s;white-space:nowrap}
 .btn-novo:hover{background:var(--gold2)}
+.btn-change-team{background:none;border:1px solid var(--border);color:var(--muted);padding:.4rem .8rem;border-radius:4px;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;white-space:nowrap}
+.btn-change-team:hover{border-color:var(--gold);color:var(--gold)}
 
 /* TABS */
 .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow-x:auto}
@@ -412,10 +414,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
   <div class="topbar">
     <div class="topbar-brand">
       <img class="topbar-logo" id="topbar-logo" src="" alt="" style="width:32px;height:32px;object-fit:contain">
-      <span class="topbar-name">VOU COM O CORINTHIANS</span>
+      <span class="topbar-name" id="topbar-name">NA ARQUIBANCADA</span>
     </div>
-    <div style="display:flex;align-items:center;gap:.5rem">
+    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
       <div id="user-chip" style="display:none"></div>
+      <button class="btn-change-team" onclick="changeTeam()">&#8646; Trocar time</button>
       <button class="btn-novo" onclick="openForm()">+ Novo Jogo</button>
     </div>
   </div>
@@ -817,6 +820,15 @@ function updateUserChip(){
 }
 
 // ── OVERRIDE showApp from base ──
+function changeTeam(){
+  lsSet(LS_TEAM, null);
+  currentTeam = null;
+  games = []; pessoas = [];
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('app').style.display = 'none';
+  showTeamSelect();
+}
+
 async function showApp(){
   await loadTeamLogos();
   var savedTeam=lsGet(LS_TEAM);
