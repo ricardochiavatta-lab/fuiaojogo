@@ -31,10 +31,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Barlow
 .splash-enter:hover{background:var(--gold2)}
 
 /* TOP BAR */
-.topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.topbar-brand{display:flex;align-items:center;gap:.75rem}
-.topbar-logo{width:32px;height:32px;object-fit:contain}
-.topbar-name{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.1em;color:var(--gold)}
+.topbar{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:.6rem;min-width:0;flex:1}
+.topbar-logo{width:32px;height:32px;object-fit:contain;flex-shrink:0}
+.topbar-right{display:flex;align-items:center;gap:.4rem;flex-shrink:0}
+.topbar-name{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.08em;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
 .btn-novo{display:flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border-radius:4px;background:var(--gold);color:#000;border:none;cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:.95rem;letter-spacing:.08em;transition:background .2s;white-space:nowrap}
 .btn-novo:hover{background:var(--gold2)}
 .btn-change-team{background:none;border:1px solid var(--border);color:var(--muted);padding:.4rem .8rem;border-radius:4px;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'Barlow',sans-serif;transition:all .2s;white-space:nowrap}
@@ -335,6 +336,84 @@ body.theme-santos .tab{color:var(--muted)}
 body.theme-santos .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
 body.theme-santos .tab:hover{color:var(--text)}
 body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
+
+/* ── MOBILE MENU ── */
+.btn-menu{display:none;background:none;border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:6px;font-size:1.1rem;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0}
+.mobile-menu{display:none;position:fixed;top:52px;left:0;right:0;background:var(--surface);border-bottom:1px solid var(--border);z-index:99;flex-direction:column;padding:.5rem;gap:.25rem;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.mobile-menu.open{display:flex}
+.mobile-menu-item{background:none;border:none;color:var(--text);text-align:left;padding:.75rem 1rem;font-family:'Barlow',sans-serif;font-size:.9rem;cursor:pointer;border-radius:6px;transition:background .2s}
+.mobile-menu-item:hover{background:var(--card)}
+#mobile-user-info{padding:.5rem 1rem;font-size:.8rem;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:.25rem}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:600px){
+  /* App layout */
+  #app.visible{height:100dvh;height:100vh}
+  .content{padding:1rem;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+  /* Topbar */
+  .btn-change-team{display:none}
+  #user-chip{display:none!important}
+  .btn-menu{display:flex}
+  .topbar-name{max-width:140px;font-size:.85rem}
+  .btn-novo{padding:.4rem .7rem;font-size:.82rem}
+
+  /* Tabs - scrollable */
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{height:0}
+  .tab{padding:.6rem .9rem;font-size:.72rem;letter-spacing:.06em;flex-shrink:0}
+
+  /* Stats grid */
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .kpi-val{font-size:2rem}
+  .two-col{grid-template-columns:1fr}
+  .streak-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* Table */
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  td,th{padding:.5rem .5rem;font-size:.75rem}
+  td:nth-child(6),th:nth-child(6),
+  td:nth-child(7),th:nth-child(7),
+  td:nth-child(8),th:nth-child(8){display:none}
+
+  /* Forms */
+  .modal{padding:1.25rem;max-height:90dvh;max-height:90vh;overflow-y:auto}
+  .form-grid{grid-template-columns:1fr}
+  .full{grid-column:1}
+  .teams-row{flex-wrap:wrap;gap:.4rem}
+  .teams-row .inp{min-width:0}
+
+  /* Retro grid */
+  .retro-grid{grid-template-columns:1fr}
+  .comp-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* Artilharia */
+  .art-row{grid-template-columns:1.5rem 2rem 1fr auto 1.5rem}
+
+  /* Section titles */
+  .sec-title{font-size:1.5rem}
+
+  /* Team select */
+  .ts-grid{grid-template-columns:repeat(3,1fr);gap:.5rem}
+  .t-logo,.t-logo-ph{width:40px;height:40px}
+  .t-name{font-size:.72rem}
+  .ts-title{font-size:2.5rem}
+
+  /* Landing */
+  .land-title{font-size:clamp(3.5rem,18vw,6rem)}
+  .land-feats{gap:.5rem}
+  .land-feat-sep{display:none}
+
+  /* Hist filters */
+  .hist-filters{flex-direction:column}
+  .hist-filters select,.hist-filters input{width:100%}
+}
+
+@media(max-width:380px){
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .ts-grid{grid-template-columns:repeat(2,1fr)}
+  .comp-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -424,11 +503,17 @@ body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
       <img class="topbar-logo" id="topbar-logo" src="" alt="" style="width:32px;height:32px;object-fit:contain">
       <span class="topbar-name" id="topbar-name">NA ARQUIBANCADA</span>
     </div>
-    <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+    <div class="topbar-right">
       <div id="user-chip" style="display:none"></div>
       <button class="btn-change-team" onclick="changeTeam()">&#8646; Trocar time</button>
-      <button class="btn-novo" onclick="openForm()">+ Novo Jogo</button>
+      <button class="btn-novo" onclick="openForm()">&#43; Novo Jogo</button>
+      <button class="btn-menu" id="btn-menu" onclick="toggleMobileMenu()" aria-label="Menu">&#9776;</button>
     </div>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <div id="mobile-user-info"></div>
+    <button class="mobile-menu-item" onclick="changeTeam();closeMobileMenu()">&#8646; Trocar time</button>
+    <button class="mobile-menu-item" onclick="logout();closeMobileMenu()">Sair</button>
   </div>
 
   <div class="tabs">
@@ -2271,15 +2356,46 @@ function renderAll(){
   if(document.getElementById('tab-historico').classList.contains('active')){buildFilters();applyFilters();}
 }
 
+
+// ── MOBILE MENU ──
+function toggleMobileMenu(){
+  var m=document.getElementById('mobile-menu');
+  m.classList.toggle('open');
+  // Update user info
+  if(currentUser){
+    var nm=currentUser.user_metadata&&currentUser.user_metadata.full_name||currentUser.email||'';
+    document.getElementById('mobile-user-info').textContent=nm;
+  }
+}
+function closeMobileMenu(){
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+// Close menu on outside click
+document.addEventListener('click',function(e){
+  var menu=document.getElementById('mobile-menu');
+  var btn=document.getElementById('btn-menu');
+  if(menu&&btn&&!menu.contains(e.target)&&!btn.contains(e.target)){
+    menu.classList.remove('open');
+  }
+});
+
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async function(){
-  // If OAuth callback, hide landing immediately
   var _h=window.location.hash||'';
   var _s=window.location.search||'';
+  // Hide landing on OAuth callback
   if(_h.includes('access_token')||_h.includes('refresh_token')||_s.includes('code=')){
     var _l=document.getElementById('landing');
     if(_l){_l.style.display='none';}
   }
+  // Hide landing immediately for returning users (has saved team)
+  try{
+    var _saved=localStorage.getItem('naarq-team-v2');
+    if(_saved&&_saved!=='null'&&JSON.parse(_saved)){
+      var _l2=document.getElementById('landing');
+      if(_l2){_l2.style.display='none';}
+    }
+  }catch(e){}
   initSupabase();
 });
 
