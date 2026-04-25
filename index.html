@@ -1184,6 +1184,7 @@ async function loadPessoas(){
   var sp=getSupa();
   var {data,error}=await sp.from('pessoas').select('*').eq('user_id',currentUser.id).order('nome');
   if(!error&&data) pessoas=data;
+  await loadOutrosJogos();
 }
 
 async function saveGameToDB(entry){
@@ -2398,6 +2399,46 @@ function renderEstadios(){
 }
 
 
+// ── OUTROS JOGOS ──
+var outrosJogos=[];
+
+async function loadOutrosJogos(){
+  if(!currentUser) return;
+  var sp=getSupa();
+  var {data,error}=await sp.from('outros_jogos').select('*').eq('user_id',currentUser.id).order('data',{ascending:false});
+  if(!error&&data) outrosJogos=data.map(function(r){return{
+    id:r.id,_db_id:r.id,mandante:r.mandante,visitante:r.visitante,
+    gp:r.gp,gc:r.gc,adversario:r.adversario,casa:r.casa,res:r.res,
+    camp:r.camp,data:r.data,ano:r.ano||parseInt((r.data||'').slice(0,4)),
+    estadio:r.estadio||'',setor:r.setor||'',gols:r.gols||[],
+    badges:r.badges||[],com_quem:r.com_quem||[],
+    torcendo_por:r.torcendo_por||'',_outro:true
+  };});
+}
+
+async function saveOutroJogoDB(entry){
+  if(!currentUser) return null;
+  var sp=getSupa();
+  var row={
+    user_id:currentUser.id,mandante:entry.mandante,visitante:entry.visitante,
+    gp:entry.gp,gc:entry.gc,adversario:entry.adversario,casa:entry.casa,res:entry.res,
+    camp:entry.camp,data:entry.data,ano:entry.ano,estadio:entry.estadio,setor:entry.setor,
+    gols:entry.gols||[],badges:entry.badges||[],com_quem:entry.com_quem||[],
+    torcendo_por:entry.torcendo_por||''
+  };
+  var res;
+  if(entry._db_id) res=await sp.from('outros_jogos').update(row).eq('id',entry._db_id).select();
+  else res=await sp.from('outros_jogos').insert(row).select();
+  if(res.error){console.error(res.error);return null;}
+  return res.data&&res.data[0]||null;
+}
+
+async function deleteOutroJogoDB(dbId){
+  if(!currentUser||!dbId) return;
+  var sp=getSupa();
+  await sp.from('outros_jogos').delete().eq('id',dbId);
+}
+
 // ── GERAL ──
 function renderGeral(){
   var todosJogos=games.concat(outrosJogos);
@@ -2487,6 +2528,7 @@ function renderAll(){
   if(document.getElementById('tab-estadios').classList.contains('active')) renderEstadios();
   if(document.getElementById('tab-pessoas').classList.contains('active')) renderPessoas();
   if(document.getElementById('tab-historico').classList.contains('active')){buildFilters();applyFilters();}
+  if(document.getElementById('tab-geral')&&document.getElementById('tab-geral').classList.contains('active')) renderGeral();
 }
 
 
