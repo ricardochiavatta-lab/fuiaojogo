@@ -414,6 +414,12 @@ body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
   .ts-grid{grid-template-columns:repeat(2,1fr)}
   .comp-grid{grid-template-columns:1fr}
 }
+
+/* ── FORM TABS ── */
+.form-tabs{display:flex;gap:0;margin-bottom:1.25rem;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.form-tab{flex:1;padding:.6rem;border:none;background:none;color:var(--muted);font-family:'Barlow',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.05em}
+.form-tab.active{background:var(--gold);color:#000}
+.form-tab:not(.active):hover{background:var(--card);color:var(--text)}
 </style>
 </head>
 <body>
@@ -635,8 +641,12 @@ body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
       <div class="modal-ttl" id="form-title">Novo Jogo</div>
       <button class="modal-x" onclick="closeOverlay('form-modal')">&#x2715;</button>
     </div>
+    <div class="form-tabs">
+      <button class="form-tab active" id="tab-meu-time" onclick="switchFormTab('meu-time')">⭐ Meu Time</button>
+      <button class="form-tab" id="tab-outro-jogo" onclick="switchFormTab('outro-jogo')">⚽ Outro Jogo</button>
+    </div>
     <div class="form-grid">
-      <!-- SEARCH PANEL (always visible at top) -->
+      <!-- SEARCH PANEL (only for meu-time) -->
       <div class="fg full" id="search-section">
         <div style="display:flex;gap:.4rem;align-items:flex-end;flex-wrap:wrap">
           <div style="display:flex;flex-direction:column;gap:.3rem;flex:0 0 90px">
@@ -1590,12 +1600,12 @@ function saveGame(){
   var est=document.getElementById('f-estadio').value.trim();
   var set=document.getElementById('f-setor').value.trim();
   if(!data||!camp||!mand||!vis){alert('Preencha: Data, Competição, Mandante e Visitante.');return;}
-  // Detect if game belongs to user's team
+  // Use form tab to decide type
+  var isMyTeam=(_formTab==='meu-time');
   var myName=(TEAMS_DATA.find(function(t){return t.id===currentTeam;})||{}).name||'';
   var myFirst=myName.toLowerCase().split(' ')[0];
-  var mandLow=mand.toLowerCase(), visLow=vis.toLowerCase();
-  var isMyTeam=myName&&myFirst.length>=3&&(mandLow.includes(myFirst)||visLow.includes(myFirst));
-  var isCasa=isMyTeam?mandLow.includes(myFirst):true;
+  var mandLow=mand.toLowerCase();
+  var isCasa=isMyTeam?(myFirst.length>=3?mandLow.includes(myFirst):true):true;
   var adv=isMyTeam?(isCasa?vis:mand):vis;
   var cg=isCasa?gp:gc, ag=isCasa?gc:gp;
   var res=cg>ag?'V':cg<ag?'D':'E';
@@ -2398,6 +2408,34 @@ function renderEstadios(){
   }).join('');
 }
 
+
+
+// ── FORM TABS ──
+var _formTab = 'meu-time';
+function switchFormTab(tab){
+  _formTab = tab;
+  document.getElementById('tab-meu-time').classList.toggle('active', tab==='meu-time');
+  document.getElementById('tab-outro-jogo').classList.toggle('active', tab==='outro-jogo');
+
+  // Show/hide search section (only for meu-time)
+  var searchSection = document.getElementById('search-section');
+  if(searchSection) searchSection.style.display = tab==='meu-time' ? '' : 'none';
+
+  // Update gols label
+  var golsLabel = document.getElementById('gols-label');
+  if(golsLabel){
+    if(tab==='meu-time'){
+      var myName=(TEAMS_DATA.find(function(t){return t.id===currentTeam;})||{}).name||'';
+      golsLabel.textContent=(myName?'Gols do '+myName:'Gols')+' ⚽';
+    } else {
+      golsLabel.textContent='Gols do mandante ⚽';
+    }
+  }
+
+  // Reset year search results
+  var ysR = document.getElementById('ys-results');
+  if(ysR) ysR.innerHTML='';
+}
 
 // ── OUTROS JOGOS ──
 var outrosJogos=[];
