@@ -683,7 +683,7 @@ body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
       <div class="fg" id="field-estadio"><label class="lbl">Estádio</label><input type="text" class="inp" id="f-estadio" placeholder="Nome do estádio" list="dl-est"><datalist id="dl-est"></datalist></div>
       <div class="fg"><label class="lbl">Setor</label><input type="text" class="inp" id="f-setor" placeholder="Ex: Leste Inferior"></div>
       <div class="fg full">
-        <label class="lbl">Gols do Corinthians ⚽</label>
+        <label class="lbl" id="gols-label">Gols ⚽</label>
         <div class="gols-area" id="gols-area"></div>
         <button class="add-gol" style="margin-top:.5rem;align-self:flex-start" onclick="promptGol()">+ Adicionar gol</button>
       </div>
@@ -1589,26 +1589,55 @@ function saveGame(){
   var est=document.getElementById('f-estadio').value.trim();
   var set=document.getElementById('f-setor').value.trim();
   if(!data||!camp||!mand||!vis){alert('Preencha: Data, Competição, Mandante e Visitante.');return;}
-  var _myTeamName=(TEAMS_DATA.find(function(t){return t.id===currentTeam;})||{}).name||''; var isCor=_myTeamName?mand.toLowerCase().includes(_myTeamName.toLowerCase().split(' ')[0].toLowerCase()):mand.toLowerCase().indexOf('corint')>=0;
-  var adv=isCor?vis:mand;
-  var cg=isCor?gp:gc,ag=isCor?gc:gp;
+  // Detect if game belongs to user's team
+  var myName=(TEAMS_DATA.find(function(t){return t.id===currentTeam;})||{}).name||'';
+  var myFirst=myName.toLowerCase().split(' ')[0];
+  var mandLow=mand.toLowerCase(), visLow=vis.toLowerCase();
+  var isMyTeam=myName&&myFirst.length>=3&&(mandLow.includes(myFirst)||visLow.includes(myFirst));
+  var isCasa=isMyTeam?mandLow.includes(myFirst):true;
+  var adv=isMyTeam?(isCasa?vis:mand):vis;
+  var cg=isCasa?gp:gc, ag=isCasa?gc:gp;
   var res=cg>ag?'V':cg<ag?'D':'E';
   var ano=parseInt(data.slice(0,4));
-  var maxId=games.length?Math.max.apply(null,games.map(function(g){return g.id;})):0;
-  var existDbId=editId?((games.find(function(g){return g.id===editId;})||{})._db_id||editId):null;
-  var entry={id:editId||(maxId+1),_db_id:existDbId,mandante:mand,visitante:vis,gp:gp,gc:gc,adversario:adv,casa:isCor,res:res,camp:camp,data:data,ano:ano,estadio:est,setor:set,gols:pendGols.slice(),badges:pendBadges.slice(),com_quem:pendPessoas.slice()};
-  if(editId){var idx=games.findIndex(function(g){return String(g.id)===String(editId)||String(g._db_id)===String(editId);});if(idx>=0)games[idx]=entry;}
+
+  var entry={
+    mandante:mand,visitante:vis,gp:gp,gc:gc,
+    adversario:adv,casa:isCasa,res:res,
+    camp:camp,data:data,ano:ano,
+    estadio:est,setor:set,
+    gols:pendGols.slice(),badges:pendBadges.slice(),com_quem:pendPessoas.slice(),
+    torcendo_por:isMyTeam?myName:(isCasa?mand:vis),
+    _outro:!isMyTeam
+  };
+  if(editId) entry._db_id=editId;
+
   closeOverlay('form-modal');
-  saveGameToDB(entry).then(function(saved){
-    if(saved){
-      if(!editId){entry._db_id=saved.id;entry.id=saved.id;games.push(entry);}
-      else{var idx2=games.findIndex(function(g){return String(g.id)===String(editId)||String(g._db_id)===String(editId);});if(idx2>=0)games[idx2]=entry;}
-      renderAll();
-      toast(editId?'Jogo atualizado! ✅':'Novo jogo adicionado! ⚽');
-    } else {
-      toast('❌ Falha ao salvar. Verifique sua conexão e tente novamente.');
-    }
-  });
+
+  if(isMyTeam){
+    saveGameToDB(entry).then(function(saved){
+      if(saved){
+        entry._db_id=saved.id;entry.id=saved.id;
+        if(editId){var idx=games.findIndex(function(g){return g._db_id===editId;});if(idx>=0)games[idx]=entry;}
+        else games.unshift(entry);
+        renderAll();
+        toast(editId?'Jogo atualizado! ✅':'Novo jogo adicionado! ⚽');
+      } else {
+        toast('❌ Falha ao salvar. Tente novamente.');
+      }
+    });
+  } else {
+    saveOutroJogoDB(entry).then(function(saved){
+      if(saved){
+        entry._db_id=saved.id;entry.id=saved.id;
+        if(editId){var idx2=outrosJogos.findIndex(function(g){return g._db_id===editId;});if(idx2>=0)outrosJogos[idx2]=entry;}
+        else outrosJogos.unshift(entry);
+        renderAll();
+        toast('Outro jogo adicionado! ⚽ (não afeta suas estatísticas do time)');
+      } else {
+        toast('❌ Falha ao salvar. Tente novamente.');
+      }
+    });
+  }
 }
 function delGame(id){
   if(!confirm('Excluir este jogo?')) return;
