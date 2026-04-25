@@ -528,6 +528,7 @@ body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
     <button class="tab" data-tab="estadios" onclick="switchTab('estadios')">Estádios</button>
     <button class="tab" data-tab="pessoas" onclick="switchTab('pessoas')">👥 Com Quem</button>
     <button class="tab" data-tab="historico" onclick="switchTab('historico')">Histórico</button>
+    <button class="tab" data-tab="geral" onclick="switchTab('geral')">Geral</button>
   </div>
 
   <div class="content">
@@ -583,6 +584,18 @@ body.theme-santos ::-webkit-scrollbar-thumb{background:#333}
         <div class="sec-label">Quem foi comigo</div>
         <div class="sec-title">Com Quem Fui</div>
         <div id="pessoas-grid" class="pessoas-grid"></div>
+      </div>
+    </div>
+    <div id="tab-geral" class="pane">
+      <div class="max">
+        <div class="sec-label">Toda sua história nas arquibancadas</div>
+        <div class="sec-title">Visão Geral</div>
+        <div class="kpi-row" id="geral-kpi-row"></div>
+        <div class="two-col" style="margin-bottom:1rem">
+          <div id="geral-times-block"></div>
+          <div id="geral-estadios-block"></div>
+        </div>
+        <div id="geral-outros-list"></div>
       </div>
     </div>
     <div id="tab-historico" class="pane">
@@ -1260,6 +1273,7 @@ function switchTab(id){
   if(id==='estadios') renderEstadios();
   if(id==='pessoas') renderPessoas();
   if(id==='historico'){buildFilters();applyFilters();}
+  if(id==='geral')renderGeral();
 }
 
 // ── STATS ──
@@ -2352,6 +2366,87 @@ function renderEstadios(){
       +'<div class="detail-list">'+rows+'</div>'
       +'</div>';
   }).join('');
+}
+
+
+// ── GERAL ──
+function renderGeral(){
+  var todosJogos=games.concat(outrosJogos);
+  var total=todosJogos.length;
+  var doTime=games.length;
+  var outros=outrosJogos.length;
+
+  // KPIs
+  document.getElementById('geral-kpi-row').innerHTML=
+    '<div class="kpi gold"><div class="kpi-val">'+total+'</div><div class="kpi-lbl">Total de Jogos</div><div class="kpi-sub">na arquibancada</div></div>'+
+    '<div class="kpi"><div class="kpi-val">'+doTime+'</div><div class="kpi-lbl">Do meu time</div></div>'+
+    '<div class="kpi"><div class="kpi-val">'+outros+'</div><div class="kpi-lbl">Outros jogos</div></div>'+
+    '<div class="kpi"><div class="kpi-val">'+(new Set(todosJogos.map(function(g){return(g.estadio||'').trim();}).filter(Boolean))).size+'</div><div class="kpi-lbl">Estádios visitados</div></div>';
+
+  // Times vistos ao vivo
+  var timesMap={};
+  todosJogos.forEach(function(g){
+    [g.mandante,g.visitante].forEach(function(t){
+      if(t){var n=normName(t);timesMap[n]=(timesMap[n]||0)+1;}
+    });
+  });
+  var timesList=Object.entries(timesMap).sort(function(a,b){return b[1]-a[1];});
+  var timesHtml=timesList.length?
+    '<div class="kpi-lbl" style="margin-bottom:.75rem">Times vistos ao vivo ('+timesList.length+')</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:.4rem">'+
+    timesList.map(function(t){
+      return '<div class="chip" style="font-size:.75rem">'+esc(t[0])+' <span style="color:var(--gold)">'+t[1]+'x</span></div>';
+    }).join('')+'</div>':
+    '<div class="no-data">Nenhum jogo cadastrado ainda.</div>';
+
+  document.getElementById('geral-times-block').innerHTML=
+    '<div class="aprv-wrap">'+timesHtml+'</div>';
+
+  // Estádios visitados
+  var estadiosMap={};
+  todosJogos.forEach(function(g){
+    var e=(g.estadio||'').trim();
+    if(e) estadiosMap[e]=(estadiosMap[e]||0)+1;
+  });
+  var estadiosList=Object.entries(estadiosMap).sort(function(a,b){return b[1]-a[1];});
+  var estadiosHtml=estadiosList.length?
+    '<div class="kpi-lbl" style="margin-bottom:.75rem">Estádios visitados ('+estadiosList.length+')</div>'+
+    '<div style="display:flex;flex-direction:column;gap:.4rem">'+
+    estadiosList.map(function(e){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:.4rem .6rem;background:var(--card);border:1px solid var(--border);border-radius:5px;font-size:.82rem">'+
+        '<span>🏟 '+esc(e[0])+'</span>'+
+        '<span style="color:var(--gold);font-family:Bebas Neue,sans-serif;font-size:1rem">'+e[1]+'x</span></div>';
+    }).join('')+'</div>':
+    '<div class="no-data">Nenhum estádio registrado ainda.</div>';
+
+  document.getElementById('geral-estadios-block').innerHTML=
+    '<div class="aprv-wrap">'+estadiosHtml+'</div>';
+
+  // Outros jogos list
+  if(outrosJogos.length){
+    var rows=outrosJogos.slice(0,20).map(function(g){
+      var tor=g.torcendo_por?'<span class="pill" style="font-size:.7rem">torcendo por '+esc(normName(g.torcendo_por))+'</span>':'';
+      return '<div class="detail-row" style="flex-wrap:wrap;gap:.4rem">'+
+        '<span class="res-badge r'+g.res+'">'+g.res+'</span>'+
+        '<span style="font-size:.78rem;color:var(--muted);min-width:80px">'+fmt(g.data)+'</span>'+
+        '<span class="placar-f">'+esc(normName(g.mandante))+' '+g.gp+'×'+g.gc+' '+esc(normName(g.visitante))+'</span>'+
+        '<span class="pill">'+esc(g.camp)+'</span>'+tor+
+        '<button style="background:none;border:none;cursor:pointer;font-size:.8rem;margin-left:auto" data-id="'+g._db_id+'" onclick="delOutroJogo(this.dataset.id)">🗑</button>'+
+        '</div>';
+    }).join('');
+    document.getElementById('geral-outros-list').innerHTML=
+      '<div class="sec-label" style="margin-top:1.5rem">Outros jogos que fui</div>'+
+      '<div class="detail-list" style="margin-top:.75rem">'+rows+'</div>';
+  } else {
+    document.getElementById('geral-outros-list').innerHTML='';
+  }
+}
+
+async function delOutroJogo(dbId){
+  if(!confirm('Excluir este jogo?')) return;
+  await deleteOutroJogoDB(dbId);
+  outrosJogos=outrosJogos.filter(function(g){return g._db_id!==dbId;});
+  renderGeral();toast('Jogo removido');
 }
 
 // ── RENDER ALL ──
