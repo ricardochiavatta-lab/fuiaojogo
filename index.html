@@ -1557,6 +1557,8 @@ function openForm(){
   if(advEl) advEl.value='';
   if(ysR) ysR.innerHTML='';
   hideManualFields();
+  // Reset tabs and gols label
+  switchFormTab('meu-time');
   openOverlay('form-modal');
 }
 function editGame(id){
